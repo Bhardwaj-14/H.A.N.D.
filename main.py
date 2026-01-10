@@ -1,5 +1,9 @@
 import cv2
 import mediapipe as mp
+import threading
+from Models.cube_renderer import start_renderer
+from packages.shared_state import shared_state
+
 
 from packages.hand_landmarks import get_frame_and_landmarks
 from packages.gestures import detect_gestures, detect_zoom
@@ -9,6 +13,13 @@ cap = cv2.VideoCapture(0)
 
 prev_zoom_dist = None
 baseline_zoom_dist = None
+
+threading.Thread(
+    target=start_renderer,
+    args=(shared_state,),
+    daemon=True
+).start()
+
 
 while cap.isOpened():
     frame, result = get_frame_and_landmarks(cap)
@@ -60,6 +71,16 @@ while cap.isOpened():
         (0, 255, 0),
         2
     )
+    if gesture == "ROTATE":
+        shared_state["rot_y"] += 2
+
+    if gesture == "DRAG":
+        shared_state["rot_x"] += 2
+
+    if "ZOOM" in gesture:
+        zoom_value = float(gesture.split()[1].replace("x",""))
+        shared_state["zoom"] = zoom_value
+
 
     cv2.imshow("H.A.N.D.", frame)
 

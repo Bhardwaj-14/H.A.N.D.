@@ -35,7 +35,7 @@ def detect_zoom(hand1, hand2, prev_dist, baseline_dist):
 
     current_dist = math.hypot(x2 - x1, y2 - y1)
 
-    if baseline_dist is None:
+    if baseline_dist is not None:
         baseline_dist = current_dist
         return "ZOOM 1.0x", current_dist, baseline_dist, ((x1, y1), (x2, y2))
     

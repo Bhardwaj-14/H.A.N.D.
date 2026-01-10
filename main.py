@@ -3,11 +3,11 @@ import mediapipe as mp
 import threading
 from Models.cube_renderer import start_renderer
 from packages.shared_state import shared_state
-
-
 from packages.hand_landmarks import get_frame_and_landmarks
 from packages.gestures import detect_gestures, detect_zoom
 
+prev_index_pos = None
+prev_gesture = None
 mp_draw = mp.solutions.drawing_utils
 cap = cv2.VideoCapture(0)
 
@@ -71,11 +71,36 @@ while cap.isOpened():
         (0, 255, 0),
         2
     )
-    if gesture == "ROTATE":
-        shared_state["rot_y"] += 2
+    if result.multi_hand_landmarks and len(result.multi_hand_landmarks) == 1:
+        hand_landmarks = result.multi_hand_landmarks[0]
+        lm = hand_landmarks.landmark
 
-    if gesture == "DRAG":
-        shared_state["rot_x"] += 2
+        x, y = lm[8].x, lm[8].y
+
+        if gesture != prev_gesture:
+            prev_index_pos = (x, y)
+            prev_gesture = gesture
+
+        if prev_index_pos is not None:
+            dx = x - prev_index_pos[0]
+            dy = y - prev_index_pos[1]
+
+            prev_index_pos = (x, y)
+
+            if abs(dx) < 0.002: dx = 0
+            if abs(dy) < 0.002: dy = 0
+
+            if gesture == "ROTATE":
+                shared_state["rot_y"] += dx * 200
+                shared_state["rot_x"] += dy * 200
+
+            elif gesture == "DRAG":
+                shared_state["pos_x"] += dx * 3
+                shared_state["pos_y"] -= dy * 3
+    else:
+        prev_index_pos = None
+        prev_gesture = None
+
 
     if "ZOOM" in gesture:
         zoom_value = float(gesture.split()[1].replace("x",""))
